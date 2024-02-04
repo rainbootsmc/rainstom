@@ -19,13 +19,15 @@ public class EntityDamageEvent implements EntityInstanceEvent, CancellableEvent 
     private final Damage damage;
     private SoundEvent sound;
     private boolean animation = true;
+    private float hurtDir; // Rainstom hurtDirを追加
 
     private boolean cancelled;
 
-    public EntityDamageEvent(@NotNull LivingEntity entity, @NotNull Damage damage, @Nullable SoundEvent sound) {
+    public EntityDamageEvent(@NotNull LivingEntity entity, @NotNull Damage damage, @Nullable SoundEvent sound, float hurtDir) { // Rainstom hurtDirを追加
         this.entity = entity;
         this.damage = damage;
         this.sound = sound;
+        this.hurtDir = hurtDir; // Rainstom hurtDirを追加
     }
 
     @NotNull
@@ -80,6 +82,16 @@ public class EntityDamageEvent implements EntityInstanceEvent, CancellableEvent 
     public void setAnimation(boolean animation) {
         this.animation = animation;
     }
+
+    // Rainstom start hurtDirを追加
+    public float getHurtDir() {
+        return hurtDir;
+    }
+
+    public void setHurtDir(float hurtDir) {
+        this.hurtDir = hurtDir;
+    }
+    // Rainstom end
 
     @Override
     public boolean isCancelled() {

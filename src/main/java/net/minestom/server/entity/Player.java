@@ -92,6 +92,9 @@ import net.minestom.server.utils.time.Cooldown;
 import net.minestom.server.utils.time.TimeUnit;
 import net.minestom.server.utils.validate.Check;
 import net.minestom.server.world.DimensionType;
+import net.rainbootsmc.rainstom.event.PlayerDrinkEvent;
+import net.rainbootsmc.rainstom.item.drop.DropAmount;
+import net.rainbootsmc.rainstom.item.drop.DropType;
 import org.jctools.queues.MessagePassingQueue;
 import org.jctools.queues.MpscUnboundedXaddArrayQueue;
 import org.jetbrains.annotations.ApiStatus;
@@ -189,7 +192,7 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
     private int food;
     private float foodSaturation;
     private long startEatingTime;
-    private long defaultEatingTime = 1000L;
+    private long defaultEatingTime = 1600L; // Rainstom バニラに合わせる 1000 -> 1600
     private long eatingTime;
     private Hand eatingHand;
 
@@ -446,6 +449,12 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
                     PlayerEatEvent playerEatEvent = new PlayerEatEvent(this, foodItem, eatingHand);
                     EventDispatcher.call(playerEatEvent);
                 }
+                // Rainstom start ポーション対応
+                else if (foodItem.material().isDrink()) {
+                    final var playerDrinkEvent = new PlayerDrinkEvent(this, foodItem, eatingHand);
+                    EventDispatcher.call(playerDrinkEvent);
+                }
+                // Rainstom end
 
                 refreshEating(null);
             }
@@ -901,6 +910,7 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
         sendPluginMessage(channel, message.getBytes(StandardCharsets.UTF_8));
     }
 
+    @SuppressWarnings({"UnstableApiUsage", "deprecation"}) // Rainstom 警告がうるさいので消す
     @Override
     public void sendMessage(@NotNull Identity source, @NotNull Component message, @NotNull MessageType type) {
         Messenger.sendMessage(this, message, ChatPosition.fromMessageType(type), source.uuid());
@@ -1267,16 +1277,18 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
     }
 
     /**
-     * Calls an {@link ItemDropEvent} with a specified item.
+     * Calls an {@link ItemDropEvent} with a specified item, type and amount.
      * <p>
      * Returns false if {@code item} is air.
      *
-     * @param item the item to drop
+     * @param item   the item to drop
+     * @param type   ドロップタイプ
+     * @param amount 一つだけドロップするかすべてドロップするか
      * @return true if player can drop the item (event not cancelled), false otherwise
      */
-    public boolean dropItem(@NotNull ItemStack item) {
+    public boolean dropItem(@NotNull ItemStack item, @NotNull DropType type, @NotNull DropAmount amount) { // Rainstom DropTypeとDropAmountを追加
         if (item.isAir()) return false;
-        ItemDropEvent itemDropEvent = new ItemDropEvent(this, item);
+        ItemDropEvent itemDropEvent = new ItemDropEvent(this, item, type, amount); // Rainstom DropTypeとDropAmountを追加
         EventDispatcher.call(itemDropEvent);
         return !itemDropEvent.isCancelled();
     }
@@ -1409,10 +1421,14 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
         sendPacketsToViewers(getEntityType().registry().spawnType().getSpawnPacket(this));
 
         // Update for viewers
-        sendPacketToViewersAndSelf(getVelocityPacket());
-        sendPacketToViewersAndSelf(getMetadataPacket());
-        sendPacketToViewersAndSelf(getPropertiesPacket());
-        sendPacketToViewersAndSelf(getEquipmentsPacket());
+        // Rainstom start バンドルパケットで送る
+        sendBundledPacketsToViewersAndSelf(
+                getVelocityPacket(),
+                getMetadataPacket(),
+                getPropertiesPacket(),
+                getEquipmentsPacket()
+        );
+        // Rainstom end
 
         getInventory().update();
     }
@@ -1469,6 +1485,14 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
         sendPacket(new SetExperiencePacket(exp, level, 0));
     }
 
+    // Rainstom start
+    public void setExpAndLevel(float exp, int level) {
+        this.exp = exp;
+        this.level = level;
+        sendPacket(new SetExperiencePacket(exp, level, 0));
+    }
+    // Rainstom end
+
     public int getPortalCooldown() {
         return portalCooldown;
     }
@@ -1507,6 +1531,18 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
     public void sendPackets(@NotNull Collection<SendablePacket> packets) {
         this.playerConnection.sendPackets(packets);
     }
+
+    // Rainstom start バンドルパケットで送れるようにする
+    public void sendBundledPackets(@NotNull SendablePacket... packets) {
+        sendBundledPackets(List.of(packets));
+    }
+
+    public void sendBundledPackets(@NotNull Collection<SendablePacket> packets) {
+        sendPacket(new BundlePacket());
+        sendPackets(packets);
+        sendPacket(new BundlePacket());
+    }
+    // Rainstom end
 
     /**
      * Gets if the player is online or not.
@@ -1757,7 +1793,7 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
         }
         if (!cursorItem.isAir()) {
             // Add item to inventory if he hasn't been able to drop it
-            if (!dropItem(cursorItem)) {
+            if (!dropItem(cursorItem, new DropType.InventoryClose(openInventory == null ? getInventory() : openInventory), DropAmount.STACK)) { // Rainstom DropTypeとDropAmountを追加
                 getInventory().addItemStack(cursorItem);
             }
         }
@@ -2155,9 +2191,9 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
             return null;
 
         final ItemStack updatedItem = getItemInHand(hand);
-        final boolean isFood = updatedItem.material().isFood();
+        final boolean isConsumable = updatedItem.material().isConsumable(); // Rainstom ポーション対応
 
-        if (isFood && !allowFood)
+        if (isConsumable && !allowFood) // Rainstom ポーション対応
             return null;
 
         ItemUpdateStateEvent itemUpdateStateEvent = new ItemUpdateStateEvent(this, hand, updatedItem);
@@ -2232,6 +2268,7 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
      * @param connection the connection to show the player to
      */
     protected void showPlayer(@NotNull PlayerConnection connection) {
+        connection.sendPacket(new BundlePacket()); // Rainstom バンドルパケットで送る
         connection.sendPacket(getEntityType().registry().spawnType().getSpawnPacket(this));
         connection.sendPacket(getVelocityPacket());
         connection.sendPacket(getMetadataPacket());
@@ -2240,6 +2277,7 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
             connection.sendPacket(getPassengersPacket());
         }
         connection.sendPacket(new EntityHeadLookPacket(getEntityId(), position.yaw()));
+        connection.sendPacket(new BundlePacket()); // Rainstom バンドルパケットで送る
     }
 
     @Override
@@ -2514,4 +2552,10 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
         return Integer.compare(chunkDistanceA, chunkDistanceB);
     }
 
+    // Rainstom start ダメージの向き関連
+    @Override
+    public void playHurtAnimation(float hurtDir) {
+        sendPacket(new HitAnimationPacket(getEntityId(), hurtDir));
+    }
+    // Rainstom end
 }

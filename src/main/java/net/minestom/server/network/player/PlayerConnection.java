@@ -4,8 +4,10 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.crypto.PlayerPublicKey;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.network.ConnectionState;
 import net.minestom.server.network.packet.server.SendablePacket;
+import net.rainbootsmc.rainstom.event.PlayerDisconnectingEvent;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -102,6 +104,15 @@ public abstract class PlayerConnection {
      * Forcing the player to disconnect.
      */
     public void disconnect() {
+        // Rainboots start PlayerDisconnectingEventを呼び出す
+        {
+            final var player = getPlayer();
+            if (player != null) {
+                EventDispatcher.call(new PlayerDisconnectingEvent(player));
+            }
+        }
+        // Rainboots end
+
         this.online = false;
         MinecraftServer.getConnectionManager().removePlayer(this);
         final Player player = getPlayer();

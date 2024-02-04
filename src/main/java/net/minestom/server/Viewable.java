@@ -5,6 +5,7 @@ import net.minestom.server.adventure.audience.PacketGroupingAudience;
 import net.minestom.server.entity.Player;
 import net.minestom.server.network.packet.server.SendablePacket;
 import net.minestom.server.network.packet.server.ServerPacket;
+import net.minestom.server.network.packet.server.play.BundlePacket;
 import net.minestom.server.utils.PacketUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -103,4 +104,47 @@ public interface Viewable {
     default @NotNull Iterable<? extends Audience> getViewersAsAudiences() {
         return this.getViewers();
     }
+
+    // Rainstom start バンドルパケット
+
+    /**
+     * バンドルパケットを用いて{@code viewers}にパケットを送ります
+     *
+     * @param packets バンドルして送るパケット
+     */
+    default void sendBundledPacketsToViewers(@NotNull Collection<SendablePacket> packets) {
+        sendPacketsToViewers(new BundlePacket());
+        sendPacketsToViewers(packets);
+        sendPacketsToViewers(new BundlePacket());
+    }
+
+    /**
+     * バンドルパケットを用いて{@code viewers}にパケットを送ります
+     *
+     * @param packets バンドルして送るパケット
+     */
+    default void sendBundledPacketsToViewers(@NotNull SendablePacket... packets) {
+        sendBundledPacketsToViewers(List.of(packets));
+    }
+
+    /**
+     * バンドルパケットを用いて{@code viewers}と自分自身にパケットを送ります
+     *
+     * @param packets バンドルして送るパケット
+     */
+    default void sendBundledPacketsToViewersAndSelf(@NotNull Collection<SendablePacket> packets) {
+        sendPacketToViewersAndSelf(new BundlePacket());
+        packets.forEach(this::sendPacketToViewersAndSelf);
+        sendPacketToViewersAndSelf(new BundlePacket());
+    }
+
+    /**
+     * バンドルパケットを用いて{@code viewers}と自分自身にパケットを送ります
+     *
+     * @param packets バンドルして送るパケット
+     */
+    default void sendBundledPacketsToViewersAndSelf(@NotNull SendablePacket... packets) {
+        sendBundledPacketsToViewersAndSelf(List.of(packets));
+    }
+    // Rainstom end
 }

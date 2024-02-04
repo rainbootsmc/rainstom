@@ -1,5 +1,6 @@
 package net.minestom.codegen;
 
+import net.minestom.codegen.block.SoundTypeGenerator;
 import net.minestom.codegen.color.DyeColorGenerator;
 import net.minestom.codegen.fluid.FluidGenerator;
 import org.slf4j.Logger;
@@ -22,6 +23,7 @@ public class Generators {
         // Generate DyeColors
         new DyeColorGenerator(resource("dye_colors.json"), outputFolder).generate();
 
+        new SoundTypeGenerator(resource("sound_types.json"), outputFolder).generate(); // Rainstom SoundTypeGeneratorを追加
 
         var generator = new CodeGenerator(outputFolder);
         generator.generate(resource("blocks.json"), "net.minestom.server.instance.block", "Block", "BlockImpl", "Blocks");

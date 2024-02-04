@@ -96,6 +96,23 @@ public record Vec(double x, double y, double z) implements Point {
         return new Vec(x, y, z);
     }
 
+    // Rainstom start Add系のメソッドを追加
+    @Override
+    public @NotNull Vec addX(double x) {
+        return add(x, 0, 0);
+    }
+
+    @Override
+    public @NotNull Vec addY(double y) {
+        return add(0, y, 0);
+    }
+
+    @Override
+    public @NotNull Vec addZ(double z) {
+        return add(0, 0, z);
+    }
+    // Rainstom end
+
     @Override
     public @NotNull Vec add(double x, double y, double z) {
         return new Vec(this.x + x, this.y + y, this.z + z);

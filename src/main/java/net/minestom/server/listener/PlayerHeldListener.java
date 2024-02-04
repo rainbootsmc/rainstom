@@ -5,6 +5,7 @@ import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.player.PlayerChangeHeldSlotEvent;
 import net.minestom.server.network.packet.client.play.ClientHeldItemChangePacket;
 import net.minestom.server.utils.MathUtils;
+import net.rainbootsmc.rainstom.event.PlayerChangedHeldSlotEvent;
 
 public class PlayerHeldListener {
 
@@ -15,6 +16,7 @@ public class PlayerHeldListener {
         }
 
         final byte slot = (byte) packet.slot();
+        final var previousSlot = player.getHeldSlot(); // Rainstom 下で呼び出すPlayerChangedHeldSlotEvent用
 
         PlayerChangeHeldSlotEvent changeHeldSlotEvent = new PlayerChangeHeldSlotEvent(player, slot);
         EventDispatcher.call(changeHeldSlotEvent);
@@ -31,6 +33,7 @@ public class PlayerHeldListener {
                 // Otherwise, simply refresh the player field
                 player.refreshHeldSlot(resultSlot);
             }
+            EventDispatcher.call(new PlayerChangedHeldSlotEvent(player, previousSlot, resultSlot)); // Rainstom イベント呼び出し
         } else {
             // Event has been canceled, send the last held slot to refresh the client
             player.setHeldItemSlot(player.getHeldSlot());

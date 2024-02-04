@@ -1,6 +1,8 @@
 package net.minestom.server.entity;
 
+import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.sound.Sound.Source;
+import net.minestom.server.adventure.AdventurePacketConvertor;
 import net.minestom.server.attribute.Attribute;
 import net.minestom.server.attribute.AttributeInstance;
 import net.minestom.server.collision.BoundingBox;
@@ -21,9 +23,9 @@ import net.minestom.server.item.ItemStack;
 import net.minestom.server.network.ConnectionState;
 import net.minestom.server.network.packet.server.LazyPacket;
 import net.minestom.server.network.packet.server.play.CollectItemPacket;
+import net.minestom.server.network.packet.server.play.DamageEventPacket;
 import net.minestom.server.network.packet.server.play.EntityAnimationPacket;
 import net.minestom.server.network.packet.server.play.EntityPropertiesPacket;
-import net.minestom.server.network.packet.server.play.SoundEffectPacket;
 import net.minestom.server.network.player.PlayerConnection;
 import net.minestom.server.scoreboard.Team;
 import net.minestom.server.sound.SoundEvent;
@@ -35,10 +37,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.temporal.TemporalUnit;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LivingEntity extends Entity implements EquipmentHandler {
@@ -312,23 +311,44 @@ public class LivingEntity extends Entity implements EquipmentHandler {
     }
 
     public boolean damage(@NotNull DamageType type, float amount) {
-        return damage(new Damage(type, null, null, null, amount));
+        return damage(type, amount, 0f); // Rainstom hurtDirを追加
     }
+
+    // Rainstom start hurtDirを追加
+    public boolean damage(@NotNull DamageType type, float value, double hurtDirX, double hurtDirZ) {
+        return damage(type, value, getHurtDir(hurtDirX, hurtDirZ));
+    }
+
+    public boolean damage(@NotNull DamageType type, float amount, @NotNull Point sourcePos) {
+        return damage(type, amount, getHurtDir(sourcePos));
+    }
+
+    public boolean damage(@NotNull DamageType type, float amount, float hurtDir) {
+        return damage(new Damage(type, null, null, null, amount), hurtDir);
+    }
+
+    public boolean damage(@NotNull Damage damage) {
+        final var source = damage.getSource();
+        final var hurtDir = source == null ? 0f : getHurtDir(source);
+        return damage(damage, hurtDir);
+    }
+    // Rainstom end
 
     /**
      * Damages the entity by a value, the type of the damage also has to be specified.
      *
-     * @param damage  the damage to be applied
+     * @param damage the damage to be applied
+     * @param hurtDir ダメージを受けた方向
      * @return true if damage has been applied, false if it didn't
      */
-    public boolean damage(@NotNull Damage damage) {
+    public boolean damage(@NotNull Damage damage, float hurtDir) { // Rainstom hurtDirを追加
         if (isDead())
             return false;
         if (isInvulnerable() || isImmune(damage.getType())) {
             return false;
         }
 
-        EntityDamageEvent entityDamageEvent = new EntityDamageEvent(this, damage, damage.getSound(this));
+        EntityDamageEvent entityDamageEvent = new EntityDamageEvent(this, damage, damage.getSound(this), hurtDir);
         EventDispatcher.callCancellable(entityDamageEvent, () -> {
             // Set the last damage type since the event is not cancelled
             this.lastDamage = entityDamageEvent.getDamage();
@@ -336,7 +356,11 @@ public class LivingEntity extends Entity implements EquipmentHandler {
             float remainingDamage = entityDamageEvent.getDamage().getAmount();
 
             if (entityDamageEvent.shouldAnimate()) {
-                sendPacketToViewersAndSelf(new EntityAnimationPacket(getEntityId(), EntityAnimationPacket.Animation.TAKE_DAMAGE));
+                // Rainstom start ダメージアニメーションを再生する
+                final var damageEventPacket = new DamageEventPacket(getEntityId(), 0, 0, 0, null);
+                sendPacketToViewersAndSelf(damageEventPacket);
+                playHurtAnimation(entityDamageEvent.getHurtDir());
+                // Rainstom end
             }
 
             // Additional hearts support
@@ -366,8 +390,11 @@ public class LivingEntity extends Entity implements EquipmentHandler {
                     // TODO: separate living entity categories
                     soundCategory = Source.HOSTILE;
                 }
-                sendPacketToViewersAndSelf(new SoundEffectPacket(sound, null, soundCategory,
-                        getPosition(), 1.0f, 1.0f, 0));
+                // Rainstom start ダメージ音をランダム化
+                final var advSound = Sound.sound(sound, soundCategory, 1f, 1f);
+                final var soundPacket = AdventurePacketConvertor.createSoundPacket(advSound, position);
+                sendPacketToViewersAndSelf(soundPacket);
+                // Rainstom end
             }
         });
 
@@ -459,7 +486,11 @@ public class LivingEntity extends Entity implements EquipmentHandler {
             // connection null during Player initialization (due to #super call)
             self = playerConnection != null && playerConnection.getConnectionState() == ConnectionState.PLAY;
         }
-        EntityPropertiesPacket propertiesPacket = new EntityPropertiesPacket(getEntityId(), List.of(attributeInstance));
+        // Rainstom start Minestomでは新規追加されたattributeしか送っていないので直す
+        final var list = new ArrayList<>(attributeModifiers.values());
+        list.add(attributeInstance);
+        EntityPropertiesPacket propertiesPacket = new EntityPropertiesPacket(getEntityId(), list);
+        // Rainstom end
         if (self) {
             sendPacketToViewersAndSelf(propertiesPacket);
         } else {
@@ -670,4 +701,36 @@ public class LivingEntity extends Entity implements EquipmentHandler {
         strength *= 1 - getAttributeValue(Attribute.KNOCKBACK_RESISTANCE);
         super.takeKnockback(strength, x, z);
     }
+
+    // Rainstom start ダメージの向き関連
+    public void playHurtAnimation(float hurtDir) {
+        // Empty
+    }
+
+    public final void playHurtAnimation(double dirX, double dirZ) {
+        playHurtAnimation(getHurtDir(dirX, dirZ));
+    }
+
+    private float getHurtDir(double dirX, double dirZ) {
+        return (float) (Math.atan2(dirZ, dirX) * 180.0F / (float) Math.PI - (double) position.yaw());
+    }
+
+    /**
+     * sourcePosからダメージを受けた場合の向きを取得する
+     */
+    public float getHurtDir(@NotNull Point sourcePos) {
+        final var dirX = position.getX() - sourcePos.getX();
+        final var dirZ = position.getZ() - sourcePos.getZ();
+        return getHurtDir(dirX, dirZ);
+    }
+
+    /**
+     * sourceのエンティティからダメージを受けた場合の向きを取得する
+     */
+    public float getHurtDir(@NotNull Entity source) {
+        final var dirX = position.getX() - source.position.getX();
+        final var dirZ = position.getZ() - source.position.getZ();
+        return getHurtDir(dirX, dirZ);
+    }
+    // Rainstom end
 }

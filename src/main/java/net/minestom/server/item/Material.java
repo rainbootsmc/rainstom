@@ -38,6 +38,16 @@ public sealed interface Material extends ProtocolObject, Materials permits Mater
         return registry().isFood();
     }
 
+    // Rainstom start ポーション対応
+    default boolean isDrink() {
+        return this == Material.POTION;
+    }
+
+    default boolean isConsumable() {
+        return isFood() || isDrink();
+    }
+    // Rainstom end
+
     default boolean isBlock() {
         return registry().block() != null;
     }
@@ -54,7 +64,7 @@ public sealed interface Material extends ProtocolObject, Materials permits Mater
         if (this == BOW || this == TRIDENT || this == CROSSBOW || this == SHIELD) {
             return true;
         } else {
-            return isFood();
+            return isConsumable(); // Rainstom ポーションも含める
         }
     }
 

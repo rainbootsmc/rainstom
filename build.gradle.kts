@@ -1,12 +1,10 @@
-import java.time.Duration
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     `java-library`
-    alias(libs.plugins.blossom)
-
-    `maven-publish`
-    signing
-    alias(libs.plugins.nexuspublish)
+    alias(libs.plugins.kotlin)
+    alias(libs.plugins.atomicfu)
+    alias(libs.plugins.serialization)
 }
 
 // Read env vars (used for publishing generally)
@@ -18,13 +16,14 @@ val shortDescription = "1.20.4 Lightweight Minecraft server"
 allprojects {
     apply(plugin = "java")
 
-    group = "net.minestom"
+    group = "net.rainbootsmc"
     version = rootProject.version
     description = shortDescription
 
     repositories {
         mavenCentral()
         maven(url = "https://jitpack.io")
+        maven(url = "https://maven.rainbootsmc.net")
     }
 
     configurations.all {
@@ -100,96 +99,12 @@ tasks {
         }
     }
 
-    blossom {
-        val gitFile = "src/main/java/net/minestom/server/Git.java"
-
-        val gitCommit = System.getenv("GIT_COMMIT")
-        val gitBranch = System.getenv("GIT_BRANCH")
-        val group = System.getenv("GROUP")
-        val artifact = System.getenv("ARTIFACT")
-
-        replaceToken("\"&COMMIT\"", if (gitCommit == null) "null" else "\"${gitCommit}\"", gitFile)
-        replaceToken("\"&BRANCH\"", if (gitBranch == null) "null" else "\"${gitBranch}\"", gitFile)
-        replaceToken("\"&GROUP\"", if (group == null) "null" else "\"${group}\"", gitFile)
-        replaceToken("\"&ARTIFACT\"", if (artifact == null) "null" else "\"${artifact}\"", gitFile)
-    }
-
-    nexusPublishing{
-        useStaging.set(true)
-        this.packageGroup.set("dev.hollowcube")
-
-        transitionCheckOptions {
-            maxRetries.set(360) // 1 hour
-            delayBetween.set(Duration.ofSeconds(10))
+    withType<KotlinCompile> {
+        kotlinOptions {
+            jvmTarget = "17"
+            freeCompilerArgs = freeCompilerArgs +
+                "-opt-in=kotlin.contracts.ExperimentalContracts" +
+                "-Xjvm-default=all"
         }
-
-        repositories.sonatype {
-            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
-            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
-
-            if (System.getenv("SONATYPE_USERNAME") != null) {
-                username.set(System.getenv("SONATYPE_USERNAME"))
-                password.set(System.getenv("SONATYPE_PASSWORD"))
-            }
-        }
-    }
-
-    publishing.publications.create<MavenPublication>("maven") {
-        groupId = "dev.hollowcube"
-        artifactId = if (channel == "snapshot") "minestom-ce-snapshots" else "minestom-ce"
-        version = project.version.toString()
-
-        from(project.components["java"])
-
-        pom {
-            name.set(this@create.artifactId)
-            description.set(shortDescription)
-            url.set("https://github.com/hollow-cube/minestom-ce")
-
-            licenses {
-                license {
-                    name.set("Apache 2.0")
-                    url.set("https://github.com/hollow-cube/minestom-ce/blob/main/LICENSE")
-                }
-            }
-
-            developers {
-                developer {
-                    id.set("TheMode")
-                }
-                developer {
-                    id.set("mworzala")
-                    name.set("Matt Worzala")
-                    email.set("matt@hollowcube.dev")
-                }
-            }
-
-            issueManagement {
-                system.set("GitHub")
-                url.set("https://github.com/hollow-cube/minestom-ce/issues")
-            }
-
-            scm {
-                connection.set("scm:git:git://github.com/hollow-cube/minestom-ce.git")
-                developerConnection.set("scm:git:git@github.com:hollow-cube/minestom-ce.git")
-                url.set("https://github.com/hollow-cube/minestom-ce")
-                tag.set("HEAD")
-            }
-
-            ciManagement {
-                system.set("Github Actions")
-                url.set("https://github.com/hollow-cube/minestom-ce/actions")
-            }
-        }
-    }
-
-    signing {
-        isRequired = System.getenv("CI") != null
-
-        val privateKey = System.getenv("GPG_PRIVATE_KEY")
-        val keyPassphrase = System.getenv()["GPG_PASSPHRASE"]
-        useInMemoryPgpKeys(privateKey, keyPassphrase)
-
-        sign(publishing.publications)
     }
 }

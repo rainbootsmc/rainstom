@@ -1,5 +1,6 @@
 package net.minestom.server.instance.block;
 
+import dev.uten2c.rainstom.block.SoundType;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.batch.Batch;
@@ -160,6 +161,12 @@ public sealed interface Block extends ProtocolObject, TagReadable, Blocks permit
     default boolean isLiquid() {
         return registry().isLiquid();
     }
+
+    // Rainstom start SoundTypeを追加
+    default @NotNull SoundType soundType() {
+        return registry().soundType();
+    }
+    // Rainstom end
 
     default boolean compare(@NotNull Block block, @NotNull Comparator comparator) {
         return comparator.test(this, block);

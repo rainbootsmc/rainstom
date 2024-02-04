@@ -166,7 +166,7 @@ public class Entity implements Viewable, Tickable, Schedulable, Snapshotable, Ev
     protected EntityType entityType; // UNSAFE to change, modify at your own risk
 
     // Network synchronization, send the absolute position of the entity each X milliseconds
-    private static final Duration SYNCHRONIZATION_COOLDOWN = Duration.of(1, TimeUnit.MINUTE);
+    private static final Duration SYNCHRONIZATION_COOLDOWN = Duration.of(3, TimeUnit.SECOND); // Rainstom 5m -> 3s エンティティの同期がイカれる時がある
     private Duration customSynchronizationCooldown;
     private long lastAbsoluteSynchronizationTime;
 
@@ -1441,6 +1441,16 @@ public class Entity implements Viewable, Tickable, Schedulable, Snapshotable, Ev
     public double getEyeHeight() {
         return getPose() == Pose.SLEEPING ? 0.2 : (boundingBox.height() * 0.85);
     }
+
+    // Rainstom start getEyePositionを追加
+    /**
+     * エンティティの目の位置を取得する
+     * @return 現在の目の位置
+     */
+    public @NotNull Pos getEyePosition() {
+        return position.addY(getEyeHeight());
+    }
+    // Rainstom end
 
     /**
      * Gets all the potion effect of this entity.

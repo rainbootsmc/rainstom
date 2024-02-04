@@ -20,9 +20,9 @@ public record SoundEffectPacket(
         @Nullable String soundName,
         @Nullable Float range, // Only allowed with soundName
         @NotNull Source source,
-        int x,
-        int y,
-        int z,
+        int packetX, // Rainstom 再生される座標の小数点以下が無視される問題を修正する
+        int packetY, // Rainstom 再生される座標の小数点以下が無視される問題を修正する
+        int packetZ, // Rainstom 再生される座標の小数点以下が無視される問題を修正する
         float volume,
         float pitch,
         long seed
@@ -45,23 +45,31 @@ public record SoundEffectPacket(
                 soundName,
                 range,
                 reader.readEnum(Source.class),
-                reader.read(INT) * 8,
-                reader.read(INT) * 8,
-                reader.read(INT) * 8,
+                reader.read(INT) / 8.0, // Rainstom 再生される座標の小数点以下が無視される問題を修正する
+                reader.read(INT) / 8.0, // Rainstom 再生される座標の小数点以下が無視される問題を修正する
+                reader.read(INT) / 8.0, // Rainstom 再生される座標の小数点以下が無視される問題を修正する
                 reader.read(FLOAT),
                 reader.read(FLOAT),
                 reader.read(LONG)
         );
     }
 
+    // Rainstom start 再生される座標の小数点以下が無視される問題を修正する
+    private SoundEffectPacket(@Nullable SoundEvent soundEvent, @Nullable String soundName, @Nullable Float range, @NotNull Source source,
+                              double x, double y, double z,
+                              float volume, float pitch, long seed) {
+        this(soundEvent, soundName, range, source, (int) (x * 8), (int) (y * 8), (int) (z * 8), volume, pitch, seed);
+    }
+    // Rainstom end
+
     public SoundEffectPacket(@NotNull SoundEvent soundEvent, @Nullable Float range, @NotNull Source source,
                              @NotNull Point position, float volume, float pitch, long seed) {
-        this(soundEvent, null, range, source, position.blockX(), position.blockY(), position.blockZ(), volume, pitch, seed);
+        this(soundEvent, null, range, source, position.x(), position.y(), position.z(), volume, pitch, seed); // Rainstom 再生される座標の小数点以下が無視される問題を修正する
     }
 
     public SoundEffectPacket(@NotNull String soundName, @Nullable Float range, @NotNull Source source,
                              @NotNull Point position, float volume, float pitch, long seed) {
-        this(null, soundName, range, source, position.blockX(), position.blockY(), position.blockZ(), volume, pitch, seed);
+        this(null, soundName, range, source, position.x(), position.y(), position.z(), volume, pitch, seed); // Rainstom 再生される座標の小数点以下が無視される問題を修正する
     }
 
     public SoundEffectPacket(@NotNull NetworkBuffer reader) {
@@ -70,7 +78,7 @@ public record SoundEffectPacket(
 
     private SoundEffectPacket(@NotNull SoundEffectPacket packet) {
         this(packet.soundEvent, packet.soundName, packet.range, packet.source,
-                packet.x, packet.y, packet.z, packet.volume, packet.pitch, packet.seed);
+                packet.packetX, packet.packetY, packet.packetZ, packet.volume, packet.pitch, packet.seed); // Rainstom 再生される座標の小数点以下が無視される問題を修正する
     }
 
     @Override
@@ -83,9 +91,9 @@ public record SoundEffectPacket(
             writer.writeOptional(FLOAT, range);
         }
         writer.write(VAR_INT, AdventurePacketConvertor.getSoundSourceValue(source));
-        writer.write(INT, x * 8);
-        writer.write(INT, y * 8);
-        writer.write(INT, z * 8);
+        writer.write(INT, packetX); // Rainstom 再生される座標の小数点以下が無視される問題を修正する
+        writer.write(INT, packetY); // Rainstom 再生される座標の小数点以下が無視される問題を修正する
+        writer.write(INT, packetZ); // Rainstom 再生される座標の小数点以下が無視される問題を修正する
         writer.write(FLOAT, volume);
         writer.write(FLOAT, pitch);
         writer.write(LONG, seed);

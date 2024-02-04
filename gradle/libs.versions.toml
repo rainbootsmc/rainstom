@@ -3,9 +3,13 @@ metadata.format.version = "1.1"
 [versions]
 
 # Important dependencies
-data = "1.20.4-rv1"
+data = "1.20.4+build.6"
 adventure = "4.15.0"
-kotlin = "1.7.22"
+kotlin = "1.9.22"
+kotlinx-datetime = "0.5.0"
+kotlinx-atomicfu = "0.23.2"
+kotlinx-serialization = "1.6.2"
+kotlinx-coroutines = "1.7.3"
 hydrazine = "1.7.2"
 hephaistos = "2.6.1"
 jetbrainsAnnotations = "23.0.0"
@@ -48,10 +52,15 @@ adventure-text-logger-slf4j = { group = "net.kyori", name = "adventure-text-logg
 # Kotlin
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
 kotlin-stdlib-jdk8 = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk8", version.ref = "kotlin" }
+kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinx-datetime" }
+kotlinx-atomicfu = { group = "org.jetbrains.kotlinx", name = "atomicfu", version.ref = "kotlinx-atomicfu" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-jdk8 = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-jdk8", version.ref = "kotlinx-coroutines" }
 
 # Miscellaneous
 hydrazine = { group = "com.github.MadMartian", name = "hydrazine-path-finding", version.ref = "hydrazine" }
-minestomData = { group = "net.minestom", name = "data", version.ref = "data" }
+minestomData = { group = "net.rainbootsmc", name = "rainstom-data", version.ref = "data" }
 jetbrainsAnnotations = { group = "org.jetbrains", name = "annotations", version.ref = "jetbrainsAnnotations" }
 hephaistos-common = { group = "io.github.jglrxavpok.hephaistos", name = "common", version.ref = "hephaistos" }
 hephaistos-gson = { group = "io.github.jglrxavpok.hephaistos", name = "gson", version.ref = "hephaistos" }
@@ -84,7 +93,15 @@ logback-classic = { group = "ch.qos.logback", name = "logback-classic", version.
 
 [bundles]
 
-kotlin = ["kotlin-stdlib-jdk8", "kotlin-reflect"]
+kotlin = [
+    "kotlin-stdlib-jdk8",
+    "kotlin-reflect",
+    "kotlinx-datetime",
+    "kotlinx-atomicfu",
+    "kotlinx-serialization-json",
+    "kotlinx-coroutines-core",
+    "kotlinx-coroutines-jdk8",
+]
 flare = ["flare", "flare-fastutil"]
 adventure = ["adventure-api", "adventure-serializer-gson", "adventure-serializer-legacy", "adventure-serializer-plain", "adventure-text-logger-slf4j"]
 junit = ["junit-api", "junit-engine", "junit-params", "junit-suite-api", "junit-suite-engine"]
@@ -96,3 +113,6 @@ logback = ["logback-core", "logback-classic"]
 blossom = { id = "net.kyori.blossom", version.ref = "blossom" }
 shadow = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }
 nexuspublish = { id = "io.github.gradle-nexus.publish-plugin", version.ref = "nexuspublish" }
+kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+atomicfu = { id = "org.jetbrains.kotlin.plugin.atomicfu", version.ref = "kotlin" }
+serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

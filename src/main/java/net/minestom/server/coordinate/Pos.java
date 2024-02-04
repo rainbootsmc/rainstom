@@ -204,6 +204,23 @@ public record Pos(double x, double y, double z, float yaw, float pitch) implemen
         return new Pos(x, y, z, yaw, pitch);
     }
 
+    // Rainstom start Add系のメソッドを追加
+    @Override
+    public @NotNull Pos addX(double x) {
+        return add(x, 0, 0);
+    }
+
+    @Override
+    public @NotNull Pos addY(double y) {
+        return add(0, y, 0);
+    }
+
+    @Override
+    public @NotNull Pos addZ(double z) {
+        return add(0, 0, z);
+    }
+    // Rainstom end
+
     @Override
     public @NotNull Pos add(double x, double y, double z) {
         return new Pos(this.x + x, this.y + y, this.z + z, yaw, pitch);
